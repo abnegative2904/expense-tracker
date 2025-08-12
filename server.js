@@ -26,24 +26,23 @@ app.get('/expenses', async (req, res) => {
 
 // Add expense
 app.post('/expenses', async (req, res) => {
-    try {
-        const { name, amount, category, date } = req.body;
+  const { name, amount, expense_type, expense_date, note } = req.body;
 
-        if (!name || !amount || !category || !date) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
+  try {
+    const result = await pool.query(
+      `INSERT INTO expenses (name, amount, expense_type, expense_date, note)
+       VALUES ($1, $2, COALESCE($3, 'Other'), COALESCE($4, CURRENT_DATE), $5)
+       RETURNING *`,
+      [name, amount, expense_type, expense_date, note]
+    );
 
-        const result = await pool.query(
-            `INSERT INTO expenses (name, amount, category, date) 
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [name, amount, category, date]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Database error adding expense' });
-    }
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add expense' });
+  }
 });
+
 
 // Serve frontend
 app.get('/', (req, res) => {

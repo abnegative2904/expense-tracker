@@ -13,22 +13,39 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL
 });
 
-// Get expenses
+// Get expenses (latest first)
 app.get('/expenses', async (req, res) => {
-    const result = await pool.query('SELECT * FROM expenses ORDER BY id DESC');
-    res.json(result.rows);
+    try {
+        const result = await pool.query('SELECT * FROM expenses ORDER BY date DESC, id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error fetching expenses' });
+    }
 });
 
 // Add expense
 app.post('/expenses', async (req, res) => {
-    const { name, amount } = req.body;
-    const result = await pool.query(
-        'INSERT INTO expenses (name, amount) VALUES ($1, $2) RETURNING *',
-        [name, amount]
-    );
-    res.status(201).json(result.rows[0]);
+    try {
+        const { name, amount, category, date } = req.body;
+
+        if (!name || !amount || !category || !date) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO expenses (name, amount, category, date) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [name, amount, category, date]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error adding expense' });
+    }
 });
 
+// Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

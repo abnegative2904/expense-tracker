@@ -1,98 +1,78 @@
+const apiBase = "/api/expenses"; // Adjust backend route if needed
+
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("expense-form");
-    const amountInput = document.getElementById("amount");
-    const expenseTypeInput = document.getElementById("expense_type");
-    const noteInput = document.getElementById("note");
-    const tableBody = document.querySelector("#expense-table tbody");
-    const monthSelect = document.getElementById("month-select");
-    const ctx = document.getElementById("expense-chart").getContext("2d");
-    let chart;
-
-    // Load months into dropdown
-    function populateMonths() {
-        const now = new Date();
-        monthSelect.innerHTML = "";
-        for (let i = 0; i < 12; i++) {
-            const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const option = document.createElement("option");
-            option.value = month.toISOString().slice(0, 7);
-            option.textContent = month.toLocaleString('default', { month: 'long', year: 'numeric' });
-            monthSelect.appendChild(option);
-        }
-    }
-
+    loadExpenses();
     populateMonths();
 
-    // Fetch expenses by month
-    async function loadExpenses(month) {
-        const res = await fetch(`/expenses?month=${month}`);
-        const expenses = await res.json();
-        renderTable(expenses);
-        renderChart(expenses);
-    }
-
-    // Render table
-    function renderTable(expenses) {
-        tableBody.innerHTML = "";
-        expenses.forEach(exp => {
-            const row = `<tr>
-                <td>₹${exp.amount}</td>
-                <td>${exp.expense_type}</td>
-                <td>${exp.note || ""}</td>
-                <td>${new Date(exp.expense_date).toLocaleDateString()}</td>
-            </tr>`;
-            tableBody.innerHTML += row;
-        });
-    }
-
-    // Render pie chart
-    function renderChart(expenses) {
-        const typeTotals = {};
-        expenses.forEach(exp => {
-            typeTotals[exp.expense_type] = (typeTotals[exp.expense_type] || 0) + parseFloat(exp.amount);
-        });
-
-        const labels = Object.keys(typeTotals);
-        const data = Object.values(typeTotals);
-
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels,
-                datasets: [{
-                    data,
-                    backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4CAF50','#9966FF']
-                }]
-            }
-        });
-    }
-
-    // Add expense
-    form.addEventListener("submit", async (e) => {
+    document.getElementById("expense-form").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const amount = amountInput.value;
-        const expense_type = expenseTypeInput.value;
-        const note = noteInput.value;
+        const expense = {
+            amount: document.getElementById("amount").value,
+            expense_type: document.getElementById("expense_type").value,
+            note: document.getElementById("note").value,
+            expense_date: new Date().toISOString().split("T")[0] // Auto date
+        };
 
-        if (!amount || !expense_type) return alert("Please fill all required fields");
-
-        await fetch("/expenses", {
+        await fetch(apiBase, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount, expense_type, note })
+            body: JSON.stringify(expense)
         });
 
-        amountInput.value = "";
-        expenseTypeInput.value = "";
-        noteInput.value = "";
-
-        loadExpenses(monthSelect.value);
+        e.target.reset();
+        loadExpenses();
     });
 
-    monthSelect.addEventListener("change", () => {
-        loadExpenses(monthSelect.value);
-    });
-
-    loadExpenses(monthSelect.value);
+    document.getElementById("month-filter").addEventListener("change", loadExpenses);
 });
+
+async function loadExpenses() {
+    const month = document.getElementById("month-filter").value;
+    const res = await fetch(`${apiBase}?month=${month}`);
+    const expenses = await res.json();
+
+    const list = document.getElementById("expense-list");
+    list.innerHTML = "";
+    expenses.forEach(exp => {
+        const li = document.createElement("li");
+        li.textContent = `${exp.expense_date}: ₹${exp.amount} - ${exp.expense_type} (${exp.note || "No note"})`;
+        list.appendChild(li);
+    });
+
+    renderChart(expenses);
+}
+
+function populateMonths() {
+    const monthFilter = document.getElementById("month-filter");
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const option = document.createElement("option");
+        option.value = date.toISOString().slice(0, 7);
+        option.textContent = date.toLocaleString("default", { month: "long", year: "numeric" });
+        monthFilter.appendChild(option);
+    }
+}
+
+function renderChart(expenses) {
+    const ctx = document.getElementById("expense-chart").getContext("2d");
+    const data = {};
+    expenses.forEach(e => {
+        data[e.expense_type] = (data[e.expense_type] || 0) + e.amount;
+    });
+
+    new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                data: Object.values(data),
+                backgroundColor: [
+                    "#FF6384", "#36A2EB", "#FFCE56",
+                    "#4BC0C0", "#9966FF", "#FF9F40",
+                    "#E7E9ED", "#FF4444", "#44FF44", "#4444FF"
+                ]
+            }]
+        }
+    });
+}

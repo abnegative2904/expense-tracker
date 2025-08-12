@@ -1,200 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abhishek's Expense Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-        header {
-            background: #2c3e50;
-            color: white;
-            padding: 15px;
-            font-size: 1.3em;
-        }
-        main {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        form input, form select, form button {
-            margin: 8px 0;
-            padding: 10px;
-            width: 95%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        form button {
-            background: #27ae60;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        form button:hover {
-            background: #219150;
-        }
-        .history {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        canvas {
-            margin-top: 20px;
-        }
-        footer {
-            background: #2c3e50;
-            color: white;
-            padding: 15px;
-            font-size: 0.9em;
-        }
-        .call-dad {
-            margin-top: 10px;
-            padding: 10px;
-            background: #e74c3c;
-            color: white;
-            display: inline-block;
-            border-radius: 5px;
-        }
-        .call-dad a {
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        @media (max-width: 600px) {
-            form input, form select, form button {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Abhishek — Expense Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* Yellow theme, centered, mobile friendly */
+  :root{
+    --bg:#fff8e1; --panel:#fff; --accent:#f9a825; --accent-dark:#f57f17; --muted:#666;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter,system-ui,Arial; background:var(--bg); color:#111; -webkit-font-smoothing:antialiased;
+  }
+  header{background:var(--accent); color:#111; padding:18px 12px; text-align:center}
+  header h1{margin:0;font-size:1.15rem; font-weight:700}
+  header .sub{margin-top:6px;font-size:0.95rem;color:#111}
+  .container{max-width:900px;margin:18px auto;padding:18px; background:var(--panel); border-radius:10px; box-shadow:0 6px 22px rgba(0,0,0,0.06)}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .col{flex:1;min-width:220px}
+  label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+  input[type=number], select, input[type=text], textarea, button {
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); font-size:1rem;
+  }
+  textarea{min-height:44px; resize:vertical}
+  button{background:var(--accent-dark); color:#fff; border:none; cursor:pointer; padding:10px 12px; font-weight:600}
+  .section{margin-top:14px}
+  .summary{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .summary .box{background:#fff8e6;border:1px solid rgba(0,0,0,0.03);padding:10px 12px;border-radius:8px;min-width:140px}
+  .progress-wrap{width:100%;background:#fff3cd;border-radius:999px;height:18px;overflow:hidden;border:1px solid rgba(0,0,0,0.03)}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent-dark),#ffb300);transition:width .3s ease}
+  #message{margin:10px auto;font-weight:700;padding:8px;border-radius:8px; display:inline-block}
+  .msg-chill{background:#fff9c4;color:#7a5a00}
+  .msg-over{background:#ffe6e6;color:#861212}
+  .history { margin-top:12px; text-align:left }
+  #expense-list{list-style:none;padding:0;margin:8px 0 0}
+  #expense-list li{padding:8px;border-bottom:1px solid rgba(0,0,0,0.04); font-size:0.97rem}
+  footer{margin-top:18px;padding:14px;text-align:center;background:#111;color:#fff;border-radius:0 0 10px 10px}
+  .call-btn{background:#d84315;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;display:inline-block}
+  @media (max-width:520px){
+    header h1{font-size:1rem}
+    .container{padding:12px}
+  }
+</style>
 </head>
 <body>
-    <header>
-        Welcome Abhishek — Your Expense Tracker<br>
-        Monthly limit set. Time to call dad? Dad can chill.
-        <div class="call-dad"><a href="tel:8340262841">📞 Call Dad</a></div>
-    </header>
+  <header>
+    <h1>Welcome Abhishek — Your Expense Tracker</h1>
+    <div class="sub">Personalized — monthly limit & dad alert included</div>
+  </header>
 
-    <main>
-        <form id="expense-form">
-            <select id="type" required>
-                <option value="">Select Type</option>
-                <option>Paid Mess</option>
-                <option>Cab</option>
-                <option>Bus</option>
-                <option>Bissu</option>
-                <option>OAC</option>
-                <option>FC</option>
-                <option>Jai Udhaar</option>
-                <option>Gym</option>
-                <option>Minoxidil</option>
-                <option>Blinkit</option>
-            </select>
-            <input type="number" id="amount" placeholder="Amount" required>
-            <textarea id="note" placeholder="Note"></textarea>
-            <button type="submit">Add Expense</button>
-        </form>
+  <div class="container">
+    <!-- summary -->
+    <div class="summary section">
+      <div class="box">
+        <div style="font-size:0.8rem;color:#555">Monthly limit</div>
+        <div id="limitValue" style="font-size:1.05rem;font-weight:700">₹0.00</div>
+      </div>
 
-        <div class="history">
-            <label>Filter by Month:</label>
-            <select id="month-filter">
-                <option value="all">All</option>
-            </select>
-            <ul id="expense-list"></ul>
+      <div class="box">
+        <div style="font-size:0.8rem;color:#555">Days left</div>
+        <div id="daysLeft" style="font-size:1.05rem;font-weight:700">0</div>
+      </div>
+
+      <div class="box">
+        <div style="font-size:0.8rem;color:#555">Total spent</div>
+        <div id="totalSpent" style="font-size:1.05rem;font-weight:700">₹0.00</div>
+      </div>
+    </div>
+
+    <!-- progress and message -->
+    <div class="section" style="text-align:center;margin-top:12px">
+      <div class="progress-wrap" aria-hidden="true">
+        <div id="progressBar" class="progress-bar" style="width:0%"></div>
+      </div>
+      <div id="message" style="margin-top:10px"></div>
+    </div>
+
+    <!-- limit form -->
+    <div class="section">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <input id="setLimit" type="number" placeholder="Set monthly limit (₹)" style="max-width:220px">
+        <button id="saveLimit">Save Limit</button>
+      </div>
+    </div>
+
+    <!-- add expense -->
+    <div class="section" style="margin-top:18px">
+      <form id="expenseForm" class="row" style="justify-content:center">
+        <!-- name removed on purpose -->
+        <div class="col" style="max-width:220px">
+          <label>Expense Type</label>
+          <select id="expenseType" required>
+            <option value="">Select Type</option>
+            <option>Paid Mess</option>
+            <option>Cab</option>
+            <option>Bus</option>
+            <option>Bissu</option>
+            <option>OAC</option>
+            <option>FC</option>
+            <option>Jai Udhaar</option>
+            <option>Gym</option>
+            <option>Minoxidil</option>
+            <option>Blinkit</option>
+            <option>Other</option>
+          </select>
         </div>
 
-        <canvas id="expenseChart"></canvas>
-    </main>
+        <div class="col" style="max-width:220px">
+          <label>Amount (₹)</label>
+          <input id="amountInput" type="number" step="0.01" required placeholder="e.g. 120.50">
+        </div>
 
-    <footer>
-        <p>All rights reserved — Abhishek</p>
-        <p>Contact: <a href="mailto:a2004shek@gmail.com" style="color:lightblue;">a2004shek@gmail.com</a></p>
-    </footer>
+        <div class="col" style="max-width:420px">
+          <label>Note (optional)</label>
+          <input id="noteInput" type="text" placeholder="Short note">
+        </div>
 
-    <script>
-        const expenseForm = document.getElementById("expense-form");
-        const expenseList = document.getElementById("expense-list");
-        const monthFilter = document.getElementById("month-filter");
-        const ctx = document.getElementById('expenseChart').getContext('2d');
+        <div style="width:100%;text-align:center;margin-top:6px">
+          <button type="submit" style="max-width:260px">Add Expense</button>
+        </div>
+      </form>
+    </div>
 
-        let expenses = [];
+    <!-- history & filter -->
+    <div class="section history">
+      <label style="display:block;margin-bottom:8px"><strong>View by month</strong></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="monthSelect" style="max-width:220px"></select>
+        <button id="refreshBtn">Refresh</button>
+      </div>
 
-        async function fetchExpenses() {
-            const res = await fetch('/expenses');
-            expenses = await res.json();
-            updateMonthFilter();
-            renderExpenses();
-            updateChart();
-        }
+      <ul id="expense-list"></ul>
+    </div>
 
-        function updateMonthFilter() {
-            const months = [...new Set(expenses.map(e => new Date(e.expense_date).toLocaleString('default', { month: 'long', year: 'numeric' })))];
-            monthFilter.innerHTML = `<option value="all">All</option>` + months.map(m => `<option value="${m}">${m}</option>`).join('');
-        }
+    <!-- chart -->
+    <div class="section" style="text-align:center">
+      <h3 style="margin-bottom:6px">Expense breakdown</h3>
+      <canvas id="pie" style="max-width:420px;margin:auto"></canvas>
+    </div>
 
-        function renderExpenses() {
-            const selectedMonth = monthFilter.value;
-            expenseList.innerHTML = '';
-            expenses
-                .filter(e => selectedMonth === 'all' || new Date(e.expense_date).toLocaleString('default', { month: 'long', year: 'numeric' }) === selectedMonth)
-                .forEach(e => {
-                    const li = document.createElement('li');
-                    li.textContent = `${e.expense_type} — ₹${e.amount} — ${e.note || 'No note'} — ${new Date(e.expense_date).toLocaleDateString()}`;
-                    expenseList.appendChild(li);
-                });
-        }
+    <!-- call dad hidden by default; only shows when over limit -->
+    <div id="callArea" style="text-align:center;margin-top:14px;display:none">
+      <a id="callDadBtn" class="call-btn" href="tel:8340262841">Call Dad — 8340262841</a>
+    </div>
+  </div>
 
-        function updateChart() {
-            const typeTotals = {};
-            expenses.forEach(e => {
-                typeTotals[e.expense_type] = (typeTotals[e.expense_type] || 0) + parseFloat(e.amount);
-            });
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(typeTotals),
-                    datasets: [{
-                        data: Object.values(typeTotals),
-                        backgroundColor: ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22','#1abc9c','#34495e','#95a5a6','#d35400']
-                    }]
-                }
-            });
-        }
+  <footer>
+    <div>All rights reserved — Abhishek</div>
+    <div>Contact: <a href="mailto:a2004shek@gmail.com" style="color:#ffd54f">a2004shek@gmail.com</a></div>
+  </footer>
 
-        expenseForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const data = {
-                expense_type: document.getElementById("type").value,
-                amount: document.getElementById("amount").value,
-                note: document.getElementById("note").value || null
-            };
-            await fetch('/expenses', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            expenseForm.reset();
-            fetchExpenses();
-        });
+<script>
+(async function(){
+  // endpoints
+  const EXPENSES_URL = '/expenses';
+  const LIMIT_URL = '/limit';
+  const monthSelect = document.getElementById('monthSelect');
+  const expenseList = document.getElementById('expense-list');
+  const amountInput = document.getElementById('amountInput');
+  const typeSelect = document.getElementById('expenseType');
+  const noteInput = document.getElementById('noteInput');
+  const setLimitInput = document.getElementById('setLimit');
+  const saveLimitBtn = document.getElementById('saveLimit');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const totalSpentEl = document.getElementById('totalSpent');
+  const limitValueEl = document.getElementById('limitValue');
+  const daysLeftEl = document.getElementById('daysLeft');
+  const progressBar = document.getElementById('progressBar');
+  const messageEl = document.getElementById('message');
+  const callArea = document.getElementById('callArea');
+  const callDadBtn = document.getElementById('callDadBtn');
+  const pieCtx = document.getElementById('pie').getContext('2d');
 
-        monthFilter.addEventListener("change", renderExpenses);
+  let expenses = [];
+  let currentLimit = 0;
+  let pieChart = null;
 
-        fetchExpenses();
-    </script>
+  function formatMonthYYYYMM(d){
+    return d.toISOString().slice(0,7);
+  }
+  function formatMonthLabel(d){
+    return d.toLocaleString('default',{ month:'long', year:'numeric' });
+  }
+  function daysLeftThisMonth(){
+    const today = new Date();
+    const last = new Date(today.getFullYear(), today.getMonth()+1, 0);
+    return Math.ceil((last - today) / (1000*60*60*24));
+  }
+
+  // populate monthSelect (last 12 months + 'All')
+  function populateMonths(){
+    monthSelect.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = 'All months';
+    monthSelect.appendChild(allOpt);
+
+    const now = new Date();
+    for(let i=0;i<12;i++){
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const opt = document.createElement('option');
+      opt.value = formatMonthYYYYMM(d);
+      opt.textContent = formatMonthLabel(d);
+      monthSelect.appendChild(opt);
+    }
+    // default to current month
+    monthSelect.value = formatMonthYYYYMM(new Date());
+  }
+
+  populateMonths();
+  daysLeftEl.textContent = daysLeftThisMonth();
+
+  // fetch limit for current month
+  async function fetchLimit(){
+    try{
+      const res = await fetch(LIMIT_URL);
+      if(!res.ok) throw new Error('Limit fetch failed');
+      const json = await res.json();
+      currentLimit = parseFloat(json.limit_amount) || 0;
+      limitValueEl.textContent = `₹${currentLimit.toFixed(2)}`;
+      setLimitInput.value = currentLimit ? currentLimit : '';
+    }catch(err){
+      console.error('fetchLimit',err);
+      currentLimit = 0;
+      limitValueEl.textContent = '₹0.00';
+    }
+  }
+
+  // set/update limit
+  saveLimitBtn.addEventListener('click', async () => {
+    const val = parseFloat(setLimitInput.value);
+    if(isNaN(val) || val < 0) return alert('Enter a valid limit');
+    try{
+      const res = await fetch(LIMIT_URL, {
+        method:'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ limit_amount: val })
+      });
+      if(!res.ok) throw new Error('Failed to save limit');
+      await fetchLimit();
+      await loadExpenses(); // re-evaluate progress
+    }catch(err){
+      console.error(err);
+      alert('Could not save limit');
+    }
+  });
+
+  // load expenses (optionally filtered by month)
+  async function loadExpenses(month){
+    try{
+      const q = month ? '?month=' + encodeURIComponent(month) : '';
+      const res = await fetch(EXPENSES_URL + q);
+      if(!res.ok) throw new Error('Failed to fetch expenses');
+      expenses = await res.json();
+      renderExpenses();
+      renderChart();
+    }catch(err){
+      console.error('loadExpenses',err);
+      expenses = [];
+      renderExpenses();
+      renderChart();
+    }
+  }
+
+  function renderExpenses(){
+    expenseList.innerHTML = '';
+    const selectedMonth = monthSelect.value;
+    const filtered = expenses.filter(e => {
+      if(!selectedMonth) return true;
+      return (e.expense_date && e.expense_date.slice(0,7) === selectedMonth);
+    });
+
+    // show newest first
+    filtered.sort((a,b)=> (b.expense_date || '') .localeCompare(a.expense_date || '') );
+
+    let total = 0;
+    filtered.forEach(row => {
+      total += parseFloat(row.amount || 0);
+      const li = document.createElement('li');
+      const date = row.expense_date ? new Date(row.expense_date).toLocaleDateString() : '';
+      li.textContent = `${date} • ₹${parseFloat(row.amount).toFixed(2)} • ${row.expense_type} ${row.note ? '— ' + row.note : ''}`;
+      expenseList.appendChild(li);
+    });
+
+    totalSpentEl.textContent = `₹${total.toFixed(2)}`;
+
+    // progress bar & messages
+    const pct = (currentLimit > 0) ? Math.min((total / currentLimit) * 100, 100) : 0;
+    progressBar.style.width = pct + '%';
+
+    if(currentLimit > 0){
+      if(total < currentLimit){
+        messageEl.textContent = 'Dad can chill now 😎';
+        messageEl.className = 'msg-chill';
+        callArea.style.display = 'none';
+      } else {
+        messageEl.textContent = 'Time to call Dad — limit exceeded!';
+        messageEl.className = 'msg-over';
+        callArea.style.display = 'block';
+      }
+    } else {
+      messageEl.textContent = 'Monthly limit not set';
+      messageEl.className = '';
+      callArea.style.display = 'none';
+    }
+  }
+
+  function renderChart(){
+    const selectedMonth = monthSelect.value;
+    const filtered = expenses.filter(e => {
+      if(!selectedMonth) return true;
+      return (e.expense_date && e.expense_date.slice(0,7) === selectedMonth);
+    });
+
+    const totals = {};
+    filtered.forEach(e=>{
+      totals[e.expense_type] = (totals[e.expense_type] || 0) + parseFloat(e.amount || 0);
+    });
+
+    const labels = Object.keys(totals);
+    const data = Object.values(totals);
+
+    // destroy previous
+    if(pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCtx, {
+      type:'pie',
+      data:{
+        labels,
+        datasets:[{
+          data,
+          backgroundColor: ['#f57f17','#ffd54f','#ffb300','#ff8f00','#fb8c00','#ffab91','#ff7043','#ffcc80','#ffd180','#ffecb3']
+        }]
+      },
+      options:{
+        plugins:{legend:{position:'bottom'}},
+        maintainAspectRatio:true
+      }
+    });
+  }
+
+  // add expense
+  document.getElementById('expenseForm').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const amount = parseFloat(amountInput.value);
+    const expense_type = typeSelect.value;
+    const note = noteInput.value || null;
+    if(!expense_type || !amount || amount <= 0) return alert('Select type and enter a positive amount');
+
+    try{
+      const res = await fetch(EXPENSES_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ amount, expense_type, note })
+      });
+      if(!res.ok) throw new Error('Insert failed');
+      // reset
+      amountInput.value = '';
+      typeSelect.value = '';
+      noteInput.value = '';
+      // refresh data (use selected month)
+      await fetchLimit();
+      await loadExpenses(monthSelect.value);
+    }catch(err){
+      console.error('add expense',err);
+      alert('Failed to add expense');
+    }
+  });
+
+  // year-month selector change
+  monthSelect.addEventListener('change', ()=> loadExpenses(monthSelect.value));
+
+  refreshBtn.addEventListener('click', () => loadExpenses(monthSelect.value));
+
+  // initial load
+  await fetchLimit();
+  await loadExpenses(monthSelect.value);
+})();
+</script>
 </body>
 </html>
+

@@ -6,66 +6,17 @@
 <title>Expense Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f4f4;
-        margin: 0;
-        padding: 0;
-    }
-    header {
-        background: #4CAF50;
-        color: white;
-        padding: 15px;
-        text-align: center;
-        font-size: 22px;
-        font-weight: bold;
-    }
-    .container {
-        max-width: 800px;
-        margin: 20px auto;
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    form {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    input, select, button {
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    button {
-        background: #4CAF50;
-        color: white;
-        cursor: pointer;
-    }
-    button:hover {
-        background: #45a049;
-    }
-    ul {
-        list-style: none;
-        padding: 0;
-    }
-    li {
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-    }
-    .summary {
-        margin: 15px 0;
-        padding: 10px;
-        background: #eee;
-        border-radius: 5px;
-    }
-    .alert {
-        padding: 10px;
-        margin: 10px 0;
-        font-weight: bold;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    header { background: #4CAF50; color: white; padding: 15px; text-align: center; font-size: 22px; font-weight: bold; }
+    .container { max-width: 800px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    form { display: flex; gap: 10px; flex-wrap: wrap; }
+    input, select, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #4CAF50; color: white; cursor: pointer; }
+    button:hover { background: #45a049; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 8px; border-bottom: 1px solid #ddd; }
+    .summary { margin: 15px 0; padding: 10px; background: #eee; border-radius: 5px; }
+    .alert { padding: 10px; margin: 10px 0; font-weight: bold; }
     .green { background: #c8f7c5; color: #2d6a4f; }
     .red { background: #f8d7da; color: #842029; }
 </style>
@@ -114,8 +65,8 @@
 </div>
 
 <script>
-    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-    let monthlyLimit = localStorage.getItem('monthlyLimit') || 0;
+    let expenses = [];
+    let monthlyLimit = 0;
 
     const expenseList = document.getElementById('expense-list');
     const totalSpentEl = document.getElementById('total-spent');
@@ -123,25 +74,25 @@
     const messageEl = document.getElementById('message');
     const daysLeftEl = document.getElementById('days-left');
 
-    // Days left in current month
+    // Days left in month
     function updateDaysLeft() {
-        let today = new Date();
-        let lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        let daysLeft = (lastDay - today) / (1000 * 60 * 60 * 24);
+        const today = new Date();
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        const daysLeft = (lastDay - today) / (1000 * 60 * 60 * 24);
         daysLeftEl.textContent = Math.ceil(daysLeft);
     }
     updateDaysLeft();
 
-    // Update pie chart
+    // Pie chart
     let pieChart;
     function updateChart() {
-        let categoryTotals = {};
+        const categoryTotals = {};
         expenses.forEach(e => {
             if (!categoryTotals[e.category]) categoryTotals[e.category] = 0;
-            categoryTotals[e.category] += e.amount;
+            categoryTotals[e.category] += parseFloat(e.amount);
         });
 
-        let ctx = document.getElementById('pieChart').getContext('2d');
+        const ctx = document.getElementById('pieChart').getContext('2d');
         if (pieChart) pieChart.destroy();
         pieChart = new Chart(ctx, {
             type: 'pie',
@@ -161,11 +112,10 @@
     // Render expenses
     function renderExpenses() {
         expenseList.innerHTML = '';
-        let totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
-        totalSpentEl.textContent = totalSpent;
+        const totalSpent = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+        totalSpentEl.textContent = totalSpent.toFixed(2);
         limitEl.textContent = monthlyLimit;
 
-        // Alert messages
         if (monthlyLimit > 0) {
             if (totalSpent < monthlyLimit * 0.5) {
                 messageEl.textContent = "Dad can chill now 😎";
@@ -180,7 +130,7 @@
         }
 
         expenses.forEach(e => {
-            let li = document.createElement('li');
+            const li = document.createElement('li');
             li.textContent = `${e.name} — ₹${e.amount} (${e.category})`;
             expenseList.appendChild(li);
         });
@@ -188,19 +138,32 @@
         updateChart();
     }
 
-    // Add expense
-    document.getElementById('expense-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        let name = document.getElementById('name').value;
-        let amount = parseFloat(document.getElementById('amount').value);
-        let category = document.getElementById('category').value;
-        expenses.push({ name, amount, category, date: new Date() });
-        localStorage.setItem('expenses', JSON.stringify(expenses));
-        this.reset();
+    // Fetch expenses from backend
+    async function fetchExpenses() {
+        const res = await fetch('/expenses');
+        const data = await res.json();
+        expenses = data;
         renderExpenses();
+    }
+
+    // Add expense to backend
+    document.getElementById('expense-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const amount = document.getElementById('amount').value;
+        const category = document.getElementById('category').value;
+
+        await fetch('/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, amount, category })
+        });
+
+        this.reset();
+        fetchExpenses();
     });
 
-    // Set limit
+    // Set limit (still localStorage for now)
     document.getElementById('limit-form').addEventListener('submit', function(e) {
         e.preventDefault();
         monthlyLimit = parseFloat(document.getElementById('set-limit').value);
@@ -208,11 +171,14 @@
         renderExpenses();
     });
 
-    renderExpenses();
+    // Load limit from localStorage and expenses from backend
+    monthlyLimit = parseFloat(localStorage.getItem('monthlyLimit')) || 0;
+    fetchExpenses();
 </script>
 
 </body>
 </html>
+
 
 
 

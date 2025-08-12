@@ -3,50 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
+    <title>Abhishek's Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Expense Tracker</h1>
+    <header>
+        <h1>Welcome Abhishek, your Expense Tracker</h1>
+        <p class="subtitle">Monthly limit set | Time to call Dad — Dad can chill  
+            <a href="tel:8340262841" class="phone-link">📞 8340262841</a>
+        </p>
+    </header>
 
-        <form id="expense-form">
-            <input type="number" id="amount" placeholder="Amount" required>
-            <select id="expense_type" required>
-                <option value="">Select Type</option>
-                <option value="Food">Food</option>
-                <option value="Transport">Transport</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Bills">Bills</option>
-                <option value="Other">Other</option>
-            </select>
-            <textarea id="note" placeholder="Note (optional)"></textarea>
-            <button type="submit">Add Expense</button>
-        </form>
+    <main>
+        <section class="form-section">
+            <h2>Add Expense</h2>
+            <form id="expense-form">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" name="amount" required>
 
-        <div class="history-section">
+                <label for="expense_type">Expense Type:</label>
+                <select id="expense_type" name="expense_type" required>
+                    <option value="">Select Type</option>
+                    <option>Paid Mess</option>
+                    <option>Cab</option>
+                    <option>Bus</option>
+                    <option>Bissu</option>
+                    <option>OAC</option>
+                    <option>FC</option>
+                    <option>Jai Udhaar</option>
+                    <option>Gym</option>
+                    <option>Minoxidil</option>
+                    <option>Blinkit</option>
+                </select>
+
+                <label for="note">Note:</label>
+                <textarea id="note" name="note"></textarea>
+
+                <button type="submit">Add Expense</button>
+            </form>
+        </section>
+
+        <section class="history-section">
             <h2>Spend History</h2>
-            <label for="month-select">Select Month:</label>
-            <select id="month-select"></select>
-            <table id="expense-table">
-                <thead>
-                    <tr>
-                        <th>Amount</th>
-                        <th>Type</th>
-                        <th>Note</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+            <label for="month-filter">Select Month:</label>
+            <select id="month-filter"></select>
+            <ul id="expense-list"></ul>
+        </section>
 
-        <div class="chart-section">
-            <h2>Expense Distribution</h2>
+        <section class="chart-section">
+            <h2>Expense Breakdown</h2>
             <canvas id="expense-chart"></canvas>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <footer>
         <p>All rights reserved Abhishek | Contact: <a href="mailto:a2004shek@gmail.com">a2004shek@gmail.com</a></p>
@@ -55,4 +64,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-

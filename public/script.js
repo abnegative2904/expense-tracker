@@ -1,99 +1,105 @@
-let expenses = [];
-let expenseChart;
+const form = document.getElementById("expense-form");
+const expenseList = document.getElementById("expense-list");
+const monthName = document.getElementById("month-name");
+const daysLeft = document.getElementById("days-left");
+const statusMessage = document.getElementById("status-message");
+const progressFill = document.getElementById("progress-fill");
+const limitInput = document.getElementById("limit");
 
-// Fetch and display expenses
-async function loadExpenses() {
-    const res = await fetch('/expenses');
-    expenses = await res.json();
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let monthlyLimit = localStorage.getItem("monthlyLimit") || 0;
+let chart;
 
-    renderList();
-    renderMonthlySummary();
-}
+// Set initial month & days left
+const now = new Date();
+const month = now.toLocaleString("default", { month: "long" });
+monthName.textContent = month;
+daysLeft.textContent = daysInMonth(now.getMonth() + 1, now.getFullYear()) - now.getDate();
 
-// Render expense list
-function renderList() {
-    const list = document.getElementById('expense-list');
-    list.innerHTML = '';
+// Event listener
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("name").value;
+    const amount = parseFloat(document.getElementById("amount").value);
+    const category = document.getElementById("category").value;
+
+    expenses.push({ name, amount, category, date: new Date() });
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+
+    form.reset();
+    renderExpenses();
+});
+
+// Render expenses
+function renderExpenses() {
+    expenseList.innerHTML = "";
+    let totalSpent = 0;
+    let categoryTotals = {};
+
     expenses.forEach(exp => {
-        const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.innerHTML = `<span>${exp.name} (${exp.category || 'Uncategorized'})</span> <span>₹${exp.amount}</span>`;
-        list.appendChild(li);
+        const li = document.createElement("li");
+        li.textContent = `${exp.name} - ₹${exp.amount} (${exp.category})`;
+        expenseList.appendChild(li);
+
+        totalSpent += exp.amount;
+        categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
+
+    updateProgress(totalSpent);
+    updateStatus(totalSpent);
+    renderChart(categoryTotals);
 }
 
-// Render monthly total and chart
-function renderMonthlySummary() {
-    const currentMonth = new Date().getMonth();
-    const monthlyExpenses = expenses.filter(exp => {
-        const expDate = new Date(exp.date || Date.now());
-        return expDate.getMonth() === currentMonth;
-    });
-
-    const total = monthlyExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-    document.getElementById('monthly-total').textContent = total.toFixed(2);
-
-    updateLimitProgress(total);
-
-    // Pie chart by category
-    const categoryData = {};
-    monthlyExpenses.forEach(exp => {
-        const category = exp.category || 'Uncategorized';
-        categoryData[category] = (categoryData[category] || 0) + parseFloat(exp.amount);
-    });
-
-    const ctx = document.getElementById('expenseChart').getContext('2d');
-    if (expenseChart) expenseChart.destroy();
-    expenseChart = new Chart(ctx, {
+// Chart.js Pie Chart
+function renderChart(data) {
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("expenseChart"), {
         type: 'pie',
         data: {
-            labels: Object.keys(categoryData),
+            labels: Object.keys(data),
             datasets: [{
-                data: Object.values(categoryData),
-                backgroundColor: ['#ff6384', '#36a2eb', '#ffcd56', '#4bc0c0', '#9966ff']
+                data: Object.values(data),
+                backgroundColor: ['#e84118', '#00a8ff', '#9c88ff', '#fbc531', '#4cd137']
             }]
         }
     });
 }
 
-// Add new expense
-document.getElementById('expense-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('name').value;
-    const amount = document.getElementById('amount').value;
-    const category = document.getElementById('category').value;
-
-    await fetch('/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, amount, category })
-    });
-
-    e.target.reset();
-    loadExpenses();
-});
-
-// Limit functions
-function setLimit() {
-    const limit = document.getElementById('limit-input').value;
-    localStorage.setItem('monthlyLimit', limit);
-    renderMonthlySummary();
-}
-
-function updateLimitProgress(total) {
-    const limit = parseFloat(localStorage.getItem('monthlyLimit') || 0);
-    const progress = document.getElementById('limit-progress');
-    if (limit > 0) {
-        const percent = Math.min((total / limit) * 100, 100).toFixed(0);
-        progress.style.width = percent + '%';
-        progress.textContent = percent + '%';
-        progress.className = `progress-bar ${percent > 80 ? 'bg-danger' : 'bg-success'}`;
-    } else {
-        progress.style.width = '0%';
-        progress.textContent = '0%';
+// Update Progress Bar
+function updateProgress(totalSpent) {
+    if (monthlyLimit > 0) {
+        let percentage = Math.min((totalSpent / monthlyLimit) * 100, 100);
+        progressFill.style.width = percentage + "%";
+        progressFill.style.background = percentage > 80 ? "red" : "#44bd32";
     }
 }
 
-// Load on page start
-loadExpenses();
+// Update Status Message
+function updateStatus(totalSpent) {
+    if (!monthlyLimit) {
+        statusMessage.textContent = "Set a monthly limit to track spending.";
+        return;
+    }
+    if (totalSpent < monthlyLimit * 0.5) {
+        statusMessage.textContent = "✅ Dad can chill now!";
+    } else if (totalSpent < monthlyLimit) {
+        statusMessage.textContent = "⚠️ Keep an eye on spending.";
+    } else {
+        statusMessage.textContent = "🚨 Time to call Dad!";
+    }
+}
 
+// Set Limit
+function setLimit() {
+    monthlyLimit = parseFloat(limitInput.value);
+    localStorage.setItem("monthlyLimit", monthlyLimit);
+    renderExpenses();
+}
+
+// Days in month helper
+function daysInMonth(month, year) {
+    return new Date(year, month, 0).getDate();
+}
+
+// Initial load
+renderExpenses();

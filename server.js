@@ -44,6 +44,43 @@ app.post('/expenses', async (req, res) => {
   }
 });
 
+// Add after expenses endpoints:
+
+// Get monthly limit
+app.get('/limit', async (req, res) => {
+    const monthYear = new Date().toISOString().slice(0, 7);
+    try {
+        const result = await pool.query(
+            'SELECT limit_amount FROM monthly_limit WHERE month_year = $1',
+            [monthYear]
+        );
+        res.json(result.rows[0] || { limit_amount: 0 });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error fetching limit' });
+    }
+});
+
+// Set monthly limit
+app.post('/limit', async (req, res) => {
+    const { limit_amount } = req.body;
+    const monthYear = new Date().toISOString().slice(0, 7);
+    try {
+        const result = await pool.query(
+            `INSERT INTO monthly_limit (month_year, limit_amount)
+             VALUES ($1, $2)
+             ON CONFLICT (month_year) DO UPDATE SET limit_amount = EXCLUDED.limit_amount
+             RETURNING *`,
+            [monthYear, limit_amount]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error setting limit' });
+    }
+});
+
+
 
 // Serve frontend
 app.get('/', (req, res) => {

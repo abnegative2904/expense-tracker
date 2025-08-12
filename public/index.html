@@ -1,268 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Expense Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f4f4;
-        margin: 0;
-        padding: 0;
-        text-align: center;
-    }
-    header {
-        background: #4CAF50;
-        color: white;
-        padding: 15px;
-        font-size: 24px;
-        font-weight: bold;
-    }
-    .container {
-        max-width: 900px;
-        margin: 20px auto;
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    form {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-    input, select, textarea, button {
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    button {
-        background: #4CAF50;
-        color: white;
-        cursor: pointer;
-    }
-    button:hover {
-        background: #45a049;
-    }
-    ul {
-        list-style: none;
-        padding: 0;
-    }
-    li {
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-        text-align: left;
-    }
-    .summary {
-        margin: 15px 0;
-        padding: 10px;
-        background: #eee;
-        border-radius: 5px;
-    }
-    .alert {
-        padding: 10px;
-        margin: 10px auto;
-        font-weight: bold;
-        width: fit-content;
-    }
-    .green { background: #c8f7c5; color: #2d6a4f; }
-    .red { background: #f8d7da; color: #842029; }
-    .month-selector {
-        margin-bottom: 15px;
-    }
-    footer {
-        margin-top: 30px;
-        padding: 15px;
-        background: #222;
-        color: white;
-        font-size: 14px;
-        border-radius: 0 0 8px 8px;
-    }
-</style>
-</head>
-<body>
-
-<header>Welcome Abhishek — Your Expense Tracker</header>
-
-<div class="container">
-    <div class="summary">
-        <p><strong>Monthly Limit:</strong> ₹<span id="limit">0</span></p>
-        <p><strong>Days Left in Month:</strong> <span id="days-left"></span></p>
-        <p><strong>Total Spent:</strong> ₹<span id="total-spent">0</span></p>
-    </div>
-
-    <form id="limit-form">
-        <input type="number" id="set-limit" placeholder="Set Monthly Limit (₹)" required>
-        <button type="submit">Set Limit</button>
-    </form>
-
-    <form id="expense-form">
-        <input type="text" id="name" placeholder="Expense Name" required>
-        <input type="number" id="amount" placeholder="Amount (₹)" required>
-        <select id="expense_type" required>
-            <option value="">Select Expense Type</option>
-            <option>Paid Mess</option>
-            <option>Bus</option>
-            <option>OAC</option>
-            <option>Bissu</option>
-            <option>Jai Udhaar</option>
-            <option>Gym</option>
-            <option>Bhabhi</option>
-            <option>Other</option>
-        </select>
-        <textarea id="note" placeholder="Note (optional)"></textarea>
-        <button type="submit">Add Expense</button>
-    </form>
-
-    <div id="message" class="alert"></div>
-
-    <div class="month-selector">
-        <label for="monthFilter"><strong>View by Month:</strong></label>
-        <select id="monthFilter"></select>
-    </div>
-
-    <h3>Expense List</h3>
-    <ul id="expense-list"></ul>
-
-    <h3>Spending Breakdown</h3>
-    <canvas id="pieChart"></canvas>
-</div>
-
-<footer>
-    <p>All rights reserved — Abhishek</p>
-    <p>Contact: <a href="mailto:a2004shek@gmail.com" style="color:#4CAF50;">a2004shek@gmail.com</a></p>
-</footer>
-
-<script>
-    let expenses = [];
-    let monthlyLimit = 0;
-
-    const expenseList = document.getElementById('expense-list');
-    const totalSpentEl = document.getElementById('total-spent');
-    const limitEl = document.getElementById('limit');
-    const messageEl = document.getElementById('message');
-    const daysLeftEl = document.getElementById('days-left');
-    const monthFilterEl = document.getElementById('monthFilter');
-
-    function updateDaysLeft() {
-        const today = new Date();
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        daysLeftEl.textContent = Math.ceil((lastDay - today) / (1000 * 60 * 60 * 24));
-    }
-    updateDaysLeft();
-
-    let pieChart;
-    function updateChart(filteredExpenses) {
-        const categoryTotals = {};
-        filteredExpenses.forEach(e => {
-            if (!categoryTotals[e.expense_type]) categoryTotals[e.expense_type] = 0;
-            categoryTotals[e.expense_type] += parseFloat(e.amount);
-        });
-
-        const ctx = document.getElementById('pieChart').getContext('2d');
-        if (pieChart) pieChart.destroy();
-        pieChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(categoryTotals),
-                datasets: [{
-                    data: Object.values(categoryTotals),
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56',
-                        '#4BC0C0', '#9966FF', '#FF9F40', '#6f42c1', '#20c997'
-                    ]
-                }]
-            }
-        });
-    }
-
-    function populateMonthFilter() {
-        const months = [...new Set(expenses.map(e => {
-            const date = new Date(e.expense_date);
-            return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-        }))];
-        monthFilterEl.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
-        monthFilterEl.value = months[0] || '';
-    }
-
-    function renderExpenses() {
-        const selectedMonth = monthFilterEl.value;
-        const filteredExpenses = expenses.filter(e => {
-            const date = new Date(e.expense_date);
-            const ym = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-            return selectedMonth ? ym === selectedMonth : true;
-        });
-
-        expenseList.innerHTML = '';
-        const totalSpent = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-        totalSpentEl.textContent = totalSpent.toFixed(2);
-        limitEl.textContent = monthlyLimit;
-
-        if (monthlyLimit > 0) {
-            if (totalSpent < monthlyLimit * 0.5) {
-                messageEl.textContent = "Dad can chill now 😎";
-                messageEl.className = "alert green";
-            } else if (totalSpent < monthlyLimit) {
-                messageEl.textContent = "Spending okay, keep track 👀";
-                messageEl.className = "alert";
-            } else {
-                messageEl.textContent = "Time to call Dad 📞💸";
-                messageEl.className = "alert red";
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abhishek's Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 1.3em;
+        }
+        main {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        form input, form select, form button {
+            margin: 8px 0;
+            padding: 10px;
+            width: 95%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        form button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        form button:hover {
+            background: #219150;
+        }
+        .history {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        canvas {
+            margin-top: 20px;
+        }
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 0.9em;
+        }
+        .call-dad {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e74c3c;
+            color: white;
+            display: inline-block;
+            border-radius: 5px;
+        }
+        .call-dad a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            form input, form select, form button {
+                width: 100%;
             }
         }
+    </style>
+</head>
+<body>
+    <header>
+        Welcome Abhishek — Your Expense Tracker<br>
+        Monthly limit set. Time to call dad? Dad can chill.
+        <div class="call-dad"><a href="tel:8340262841">📞 Call Dad</a></div>
+    </header>
 
-        filteredExpenses.forEach(e => {
-            const li = document.createElement('li');
-            li.textContent = `${e.name} — ₹${e.amount} (${e.expense_type}) ${e.note ? '— ' + e.note : ''}`;
-            expenseList.appendChild(li);
+    <main>
+        <form id="expense-form">
+            <select id="type" required>
+                <option value="">Select Type</option>
+                <option>Paid Mess</option>
+                <option>Cab</option>
+                <option>Bus</option>
+                <option>Bissu</option>
+                <option>OAC</option>
+                <option>FC</option>
+                <option>Jai Udhaar</option>
+                <option>Gym</option>
+                <option>Minoxidil</option>
+                <option>Blinkit</option>
+            </select>
+            <input type="number" id="amount" placeholder="Amount" required>
+            <textarea id="note" placeholder="Note"></textarea>
+            <button type="submit">Add Expense</button>
+        </form>
+
+        <div class="history">
+            <label>Filter by Month:</label>
+            <select id="month-filter">
+                <option value="all">All</option>
+            </select>
+            <ul id="expense-list"></ul>
+        </div>
+
+        <canvas id="expenseChart"></canvas>
+    </main>
+
+    <footer>
+        <p>All rights reserved — Abhishek</p>
+        <p>Contact: <a href="mailto:a2004shek@gmail.com" style="color:lightblue;">a2004shek@gmail.com</a></p>
+    </footer>
+
+    <script>
+        const expenseForm = document.getElementById("expense-form");
+        const expenseList = document.getElementById("expense-list");
+        const monthFilter = document.getElementById("month-filter");
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+
+        let expenses = [];
+
+        async function fetchExpenses() {
+            const res = await fetch('/expenses');
+            expenses = await res.json();
+            updateMonthFilter();
+            renderExpenses();
+            updateChart();
+        }
+
+        function updateMonthFilter() {
+            const months = [...new Set(expenses.map(e => new Date(e.expense_date).toLocaleString('default', { month: 'long', year: 'numeric' })))];
+            monthFilter.innerHTML = `<option value="all">All</option>` + months.map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        function renderExpenses() {
+            const selectedMonth = monthFilter.value;
+            expenseList.innerHTML = '';
+            expenses
+                .filter(e => selectedMonth === 'all' || new Date(e.expense_date).toLocaleString('default', { month: 'long', year: 'numeric' }) === selectedMonth)
+                .forEach(e => {
+                    const li = document.createElement('li');
+                    li.textContent = `${e.expense_type} — ₹${e.amount} — ${e.note || 'No note'} — ${new Date(e.expense_date).toLocaleDateString()}`;
+                    expenseList.appendChild(li);
+                });
+        }
+
+        function updateChart() {
+            const typeTotals = {};
+            expenses.forEach(e => {
+                typeTotals[e.expense_type] = (typeTotals[e.expense_type] || 0) + parseFloat(e.amount);
+            });
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(typeTotals),
+                    datasets: [{
+                        data: Object.values(typeTotals),
+                        backgroundColor: ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22','#1abc9c','#34495e','#95a5a6','#d35400']
+                    }]
+                }
+            });
+        }
+
+        expenseForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const data = {
+                expense_type: document.getElementById("type").value,
+                amount: document.getElementById("amount").value,
+                note: document.getElementById("note").value || null
+            };
+            await fetch('/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            expenseForm.reset();
+            fetchExpenses();
         });
 
-        updateChart(filteredExpenses);
-    }
+        monthFilter.addEventListener("change", renderExpenses);
 
-    async function fetchExpenses() {
-        const res = await fetch('/expenses');
-        const data = await res.json();
-        expenses = data;
-        populateMonthFilter();
-        renderExpenses();
-    }
-
-    document.getElementById('expense-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const amount = document.getElementById('amount').value;
-        const expense_type = document.getElementById('expense_type').value;
-        const note = document.getElementById('note').value;
-
-        await fetch('/expenses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, amount, expense_type, note })
-        });
-
-        this.reset();
         fetchExpenses();
-    });
-
-    document.getElementById('limit-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        monthlyLimit = parseFloat(document.getElementById('set-limit').value);
-        localStorage.setItem('monthlyLimit', monthlyLimit);
-        renderExpenses();
-    });
-
-    monthFilterEl.addEventListener('change', renderExpenses);
-
-    monthlyLimit = parseFloat(localStorage.getItem('monthlyLimit')) || 0;
-    fetchExpenses();
-</script>
-
+    </script>
 </body>
 </html>
-

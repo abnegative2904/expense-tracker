@@ -16,13 +16,14 @@ const pool = new Pool({
 // Get expenses (latest first)
 app.get('/expenses', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM expenses ORDER BY date DESC, id DESC');
+        const result = await pool.query('SELECT * FROM expenses ORDER BY expense_date DESC, id DESC');
         res.json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error fetching expenses' });
     }
 });
+
 
 // Add expense
 app.post('/expenses', async (req, res) => {

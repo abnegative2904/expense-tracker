@@ -1,177 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Expense Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
-    header { background: #4CAF50; color: white; padding: 15px; text-align: center; font-size: 22px; font-weight: bold; }
-    .container { max-width: 800px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    form { display: flex; gap: 10px; flex-wrap: wrap; }
-    input, select, textarea, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
-    button { background: #4CAF50; color: white; cursor: pointer; }
-    button:hover { background: #45a049; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 8px; border-bottom: 1px solid #ddd; }
-    .summary { margin: 15px 0; padding: 10px; background: #eee; border-radius: 5px; }
-    .alert { padding: 10px; margin: 10px 0; font-weight: bold; }
-    .green { background: #c8f7c5; color: #2d6a4f; }
-    .red { background: #f8d7da; color: #842029; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <div class="container">
+        <h1>Expense Tracker</h1>
 
-<header>Welcome Abhishek — Your Expense Tracker</header>
+        <form id="expense-form">
+            <input type="number" id="amount" placeholder="Amount" required>
+            <select id="expense_type" required>
+                <option value="">Select Type</option>
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Other">Other</option>
+            </select>
+            <textarea id="note" placeholder="Note (optional)"></textarea>
+            <button type="submit">Add Expense</button>
+        </form>
 
-<div class="container">
-    <div class="summary">
-        <p><strong>Monthly Limit:</strong> ₹<span id="limit">0</span></p>
-        <p><strong>Days Left in Month:</strong> <span id="days-left"></span></p>
-        <p><strong>Total Spent:</strong> ₹<span id="total-spent">0</span></p>
+        <div class="history-section">
+            <h2>Spend History</h2>
+            <label for="month-select">Select Month:</label>
+            <select id="month-select"></select>
+            <table id="expense-table">
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Note</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="chart-section">
+            <h2>Expense Distribution</h2>
+            <canvas id="expense-chart"></canvas>
+        </div>
     </div>
 
-    <form id="limit-form">
-        <input type="number" id="set-limit" placeholder="Set Monthly Limit (₹)" required>
-        <button type="submit">Set Limit</button>
-    </form>
-    <br>
+    <footer>
+        <p>All rights reserved Abhishek | Contact: <a href="mailto:a2004shek@gmail.com">a2004shek@gmail.com</a></p>
+    </footer>
 
-    <form id="expense-form">
-        <input type="text" id="name" placeholder="Expense Name" required>
-        <input type="number" id="amount" placeholder="Amount (₹)" required>
-        <select id="expense_type" required>
-            <option value="">Select Expense Type</option>
-            <option>Paid Mess</option>
-            <option>Bus</option>
-            <option>OAC</option>
-            <option>Bissu</option>
-            <option>Jai Udhaar</option>
-            <option>Gym</option>
-            <option>Bhabhi</option>
-            <option>Other</option>
-        </select>
-        <input type="date" id="expense_date">
-        <textarea id="note" placeholder="Note (optional)"></textarea>
-        <button type="submit">Add Expense</button>
-    </form>
-
-    <div id="message" class="alert"></div>
-
-    <h3>Expense List</h3>
-    <ul id="expense-list"></ul>
-
-    <h3>Spending Breakdown</h3>
-    <canvas id="pieChart"></canvas>
-</div>
-
-<script>
-    let expenses = [];
-    let monthlyLimit = 0;
-
-    const expenseList = document.getElementById('expense-list');
-    const totalSpentEl = document.getElementById('total-spent');
-    const limitEl = document.getElementById('limit');
-    const messageEl = document.getElementById('message');
-    const daysLeftEl = document.getElementById('days-left');
-
-    function updateDaysLeft() {
-        const today = new Date();
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        const daysLeft = (lastDay - today) / (1000 * 60 * 60 * 24);
-        daysLeftEl.textContent = Math.ceil(daysLeft);
-    }
-    updateDaysLeft();
-
-    let pieChart;
-    function updateChart() {
-        const categoryTotals = {};
-        expenses.forEach(e => {
-            if (!categoryTotals[e.expense_type]) categoryTotals[e.expense_type] = 0;
-            categoryTotals[e.expense_type] += parseFloat(e.amount);
-        });
-
-        const ctx = document.getElementById('pieChart').getContext('2d');
-        if (pieChart) pieChart.destroy();
-        pieChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(categoryTotals),
-                datasets: [{
-                    data: Object.values(categoryTotals),
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56',
-                        '#4BC0C0', '#9966FF', '#FF9F40', '#6f42c1', '#20c997'
-                    ]
-                }]
-            }
-        });
-    }
-
-    function renderExpenses() {
-        expenseList.innerHTML = '';
-        const totalSpent = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-        totalSpentEl.textContent = totalSpent.toFixed(2);
-        limitEl.textContent = monthlyLimit;
-
-        if (monthlyLimit > 0) {
-            if (totalSpent < monthlyLimit * 0.5) {
-                messageEl.textContent = "Dad can chill now 😎";
-                messageEl.className = "alert green";
-            } else if (totalSpent < monthlyLimit) {
-                messageEl.textContent = "Spending okay, keep track 👀";
-                messageEl.className = "alert";
-            } else {
-                messageEl.textContent = "Time to call Dad 📞💸";
-                messageEl.className = "alert red";
-            }
-        }
-
-        expenses.forEach(e => {
-            const li = document.createElement('li');
-            li.textContent = `${e.name} — ₹${e.amount} (${e.expense_type}) on ${e.expense_date || 'N/A'} ${e.note ? '— ' + e.note : ''}`;
-            expenseList.appendChild(li);
-        });
-
-        updateChart();
-    }
-
-    async function fetchExpenses() {
-        const res = await fetch('/expenses');
-        const data = await res.json();
-        expenses = data;
-        renderExpenses();
-    }
-
-    document.getElementById('expense-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const amount = document.getElementById('amount').value;
-        const expense_type = document.getElementById('expense_type').value;
-        const expense_date = document.getElementById('expense_date').value || null;
-        const note = document.getElementById('note').value;
-
-        await fetch('/expenses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, amount, expense_type, expense_date, note })
-        });
-
-        this.reset();
-        fetchExpenses();
-    });
-
-    document.getElementById('limit-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        monthlyLimit = parseFloat(document.getElementById('set-limit').value);
-        localStorage.setItem('monthlyLimit', monthlyLimit);
-        renderExpenses();
-    });
-
-    monthlyLimit = parseFloat(localStorage.getItem('monthlyLimit')) || 0;
-    fetchExpenses();
-</script>
-
+    <script src="script.js"></script>
 </body>
 </html>
+
